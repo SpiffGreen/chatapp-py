@@ -1,0 +1,25 @@
+{
+  "name": "chatapp",
+  "version": "1.0.0",
+  "description": "A simple chat application written in python",
+  "main": "index.js",
+  "scripts": {
+    "dev:client": "npx tailwindcss -i ./src/static/css/global.css -o ./src/static/css/style.css --watch",
+    "dev:server": "python ./src/main.py",
+    "dev": "npx concurrently \"npm run dev:server\" \"npm run dev:client\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SpiffGreen/chatapp-py.git"
+  },
+  "author": "Spiff Jekey-Green",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SpiffGreen/chatapp-py/issues"
+  },
+  "homepage": "https://github.com/SpiffGreen/chatapp-py#readme",
+  "devDependencies": {
+    "concurrently": "^7.4.0",
+    "tailwindcss": "^3.1.8"
+  }
+}

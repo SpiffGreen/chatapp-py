@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 from lib.utils import valid_login, log_the_user_in
 
 app = Flask(__name__)
+app.secret_key = "s3cr3tee_321"
 
 @app.route('/')
 def index():

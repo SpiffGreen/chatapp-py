@@ -1,5 +1,6 @@
 venv/
 mypython/
+node_modules/
 
 *.pyc
 __pycache__/
