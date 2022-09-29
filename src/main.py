@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 from lib.utils import valid_login, log_the_user_in, auth_required, stay_logged
+import lib.db
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "s3cr3tee_321"

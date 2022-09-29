@@ -2,11 +2,12 @@ from flask import redirect, url_for, session, abort
 from datetime import datetime, timedelta
 from functools import wraps
 import logging
+from lib.config import getConfig
 import jwt
 
-
-
 # A list of helper functions to run
+
+SECRET = getConfig().get("SECRET_KEY")
 
 def valid_login(username, password):
   # perform verification
@@ -18,10 +19,11 @@ def log_the_user_in(username, password, key):
     token = jwt.encode({
       "userId": 1, # TODO: Check the login later
       'exp' : datetime.utcnow() + timedelta(minutes = 30)
-    }, key, algorithms=["HS256"])
+    }, SECRET)
     session["token"] = token
     return redirect(url_for("dashboard"))
   except:
+    logging.exception("An exception was thrown!")
     return abort(500)
 
 def auth_required(func):
@@ -30,7 +32,7 @@ def auth_required(func):
     if not "token" in session:
       return redirect(url_for("login"))
     try:
-      data = jwt.decode(session["token"], "s3cr3tee_321", algorithms=["HS256"])
+      data = jwt.decode(session["token"], SECRET, algorithms=["HS256"])
       print(data)
     except jwt.ExpiredSignatureError:
       return 'Signature expired. Please log in again.'
