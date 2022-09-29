@@ -1,8 +1,8 @@
 from flask import redirect, url_for, session, abort
 from datetime import datetime, timedelta
+from lib.config import getConfig
 from functools import wraps
 import logging
-from lib.config import getConfig
 import jwt
 
 # A list of helper functions to run
@@ -13,7 +13,7 @@ def valid_login(username, password):
   # perform verification
   return True
 
-def log_the_user_in(username, password, key):
+def log_the_user_in(username, password):
   try:
     # encode the payload to set the details
     token = jwt.encode({
@@ -41,7 +41,7 @@ def auth_required(func):
     except:
       logging.exception("An exception was thrown!")
       return "Custom Error"
-    return func(*args, **kwargs)
+    return func(userID=data['userId'], *args, **kwargs)
   return wrapper_func
 
 def stay_logged(func):

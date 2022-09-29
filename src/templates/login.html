@@ -9,8 +9,12 @@
 <body>
   Login
 
+  {% if error %}
+    <p><strong>Error:</strong> {{ error }}
+  {% endif %}
+
   <form action="{{ request.path }}" method="POST">
-    <input type="text" name="username" id="username" placeholder="Enter username" />
+    <input type="email" name="email" id="email" placeholder="Enter email" />
     <input type="password" name="password" id="password" placeholder="Enter password" />
     <button type="submit">Login</button>
   </form>

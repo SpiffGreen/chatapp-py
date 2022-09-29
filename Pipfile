@@ -16,6 +16,8 @@ flask-sqlalchemy = "*"
 flask-marshmallow = "*"
 marshmallow-sqlalchemy = "*"
 python-dotenv = "*"
+pymysql = "*"
+flask-bcrypt = "*"
 
 [dev-packages]
 
