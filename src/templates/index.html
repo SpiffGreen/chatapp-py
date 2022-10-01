@@ -1,13 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test template</title>
-  <link rel="stylesheet" href="/static/css/style.css" />
-</head>
-<body>
-  <h1 class="underline text-red-500">This is the test template</h1>
-</body>
+  {% include "partials/head.html" %}
+  <body class="bg-[#ffffff] text-[#374151] min-h-screen">
+    {% include "partials/nav.html" %}
+
+    <header
+      class="min-h-[380px] text-center grid place-content-center place-items-center gap-4 max-w-4xl mx-auto px-3"
+    >
+      <h1 class="text-5xl font-bold leading-[1.29]">
+        Constantly Keep in touch <br />
+        with friends
+      </h1>
+      <p class="text-zinc-400 text-xl">
+        A you first <span class="text-blue-500">chat app</span> dedicated to
+        level up your social life, with features like instant
+        <span class="text-blue-500">messaging</span>,
+        <span class="text-blue-500">friends</span>,
+        <span class="text-blue-500">message tracking</span>
+      </p>
+    </header>
+  </body>
 </html>

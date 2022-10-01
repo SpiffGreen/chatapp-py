@@ -110,17 +110,24 @@ def logout():
 @app.route('/register', methods=["GET", "POST"])
 @stay_logged
 def register():
+  error = None
   if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        password = request.form['password']
-        computed_password = bcrypt.generate_password_hash(password)
-        user = User(name=name, email=email, password=computed_password)
-        db.session.add(user)
-        db.session.commit()
-
-        return redirect(url_for('login'))
-  return render_template('register.html')
+    try:
+      name = request.form['name']
+      email = request.form['email']
+      password = request.form['password']
+      user = User.query.filter(User.email == email).first()
+      if user:
+        error = "User already exists"
+        return render_template('register.html', error=error)
+      computed_password = bcrypt.generate_password_hash(password)
+      user = User(name=name, email=email, password=computed_password)
+      db.session.add(user)
+      db.session.commit()
+      return redirect(url_for('login'))
+    except:
+      error = "Something went wrong, please check"
+  return render_template('register.html', error=error)
 
 @app.route('/dashboard')
 @auth_required
@@ -171,6 +178,21 @@ def remove_friend(userID):
     if friendship:
       db.session.delete(friendship)
       db.session.commit()
+    return jsonify({ "success": True })
+  except:
+    if not user_id:
+      return jsonify({ "success": False, "message": "Include valid user id" })
+
+# Remove a friend
+@app.route('/api/add-friend')
+@auth_required
+def add_friend(userID):
+  user_id = None
+  try:
+    user_id = int(request.args["user_id"])
+    newFriendship = Friendship(accepted=False, requestingUserId=int(userID), acceptingUserId=user_id)
+    db.session.add(newFriendship)
+    db.session.commit()
     return jsonify({ "success": True })
   except:
     if not user_id:

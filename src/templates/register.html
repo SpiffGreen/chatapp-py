@@ -1,19 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register</title>
-</head>
-<body>
-  Register
+  {% include "partials/head.html" %}
+  <body>
+    {% include "partials/nav.html" %}
 
-  <form action="{{ request.path }}" method="POST">
-    <input type="text" name="name" id="name" placeholder="Enter username" />
-    <input type="email" name="email" id="email" placeholder="Enter email" />
-    <input type="password" name="password" id="password" placeholder="Enter password" />
-    <button type="submit">Register</button>
-  </form>
-</body>
+    <div class="max-w-screen-xl px-4 mx-auto pt-5">
+      <h1 class="text-4xl font-semibold my-3 text-center">
+        Create new account.
+      </h1>
+      {% if error %}
+      <div class="max-w-[400px] mx-auto my-4 p-3 bg-amber-100 text-yellow-500 border border-yellow-500 rounded">{{ error }}</div>
+      {% endif %}
+      <form
+        action="{{ request.path }}"
+        method="POST"
+        class="max-w-[400px] mx-auto bg-red py-2"
+      >
+      <label for="name">Name</label>
+        <input
+          type="name"
+          name="name"
+          id="name"
+          placeholder="Enter name"
+          class="mb-4 bg-zinc-200 p-2 rounded block w-full"
+          required
+        />
+        <label for="email">Email</label>
+        <input
+          type="email"
+          name="email"
+          id="email"
+          placeholder="Enter email"
+          class="mb-4 bg-zinc-200 p-2 rounded block w-full"
+          required
+        />
+        <label for="password">Password</label>
+        <input
+          type="password"
+          name="password"
+          id="password"
+          placeholder="Enter password"
+          class="bg-zinc-200 p-2 rounded block w-full"
+          required
+        />
+        <button
+          type="submit"
+          class="block w-full bg-blue-500 my-2 p-2 text-white rounded mt-3"
+        >
+          Register
+        </button>
+      </form>
+      <p class="text-center">
+        Already have an account?
+        <a href="/login" class="text-blue-500">Sign in</a>
+      </p>
+    </div>
+  </body>
 </html>
