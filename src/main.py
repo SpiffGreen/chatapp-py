@@ -1,16 +1,21 @@
 from copyreg import constructor
+from email.mime import message
 from flask import Flask, render_template, request, session, redirect, url_for, abort, jsonify
 from lib.utils import valid_login, log_the_user_in, auth_required, stay_logged
-from sqlalchemy_serializer import SerializerMixin
+from flask_marshmallow import Marshmallow
 from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from sqlalchemy.sql import func
+from sqlalchemy import or_
+from sqlalchemy.sql import func, expression
 from lib.config import getConfig
 import logging
 import jwt
 
-# import lib.db
+def addMessage(senderID, receiverID, message):
+  message = Message(message=message, senderId=senderID, receiverId=receiverID)
+  db.session.add(message)
+  db.session.commit()
 
 # Env Variables
 SECRET = getConfig().get("SECRET_KEY")
@@ -22,39 +27,62 @@ app.secret_key = SECRET
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 
 
-# Init db
+# Init
 db = SQLAlchemy()
 db.init_app(app)
 bcrypt = Bcrypt(app)
+ma = Marshmallow(app)
 
 # User Class/Model
-class User(db.Model, SerializerMixin):
+class User(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   name = db.Column(db.String(100))
   email = db.Column(db.String(100), unique=True)
   password = db.Column(db.String(250))
+  created_on = db.Column(db.DateTime, server_default=db.func.now())
+  updated_on = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
 
   def __init__(self, name, email, password):
     self.name = name
     self.email = email
     self.password = password
 
+class UserSchema(ma.Schema):
+  class Meta:
+    fields = ("id", "name", "email", "created_on", "updated_on")
+
+# Init schema
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)
 class Message(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   message = db.Column(db.String(250))
-  userId = db.Column(db.Integer)
-  toUserId = db.Column(db.Integer)
+  senderId = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+  sender = db.relationship("User", backref="messages")
+  receiverId = db.Column(db.Integer)
+  created_on = db.Column(db.DateTime, server_default=db.func.now())
+  updated_on = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
 
-  def __init__(self, message, userId, toUserId):
+  def __init__(self, message, senderId, receiverId):
     self.message = message
-    self.userId = userId
-    self.toUserId = toUserId
+    self.senderId = senderId
+    self.receiverId = receiverId
+
+class MessageSchema(ma.Schema):
+  class Meta:
+    fields = ("id", "message", "senderId", "receiverId", "created_on", "updated_on", "sender")
+
+# Init schema
+message_schema = MessageSchema()
+messages_schema = MessageSchema(many=True)
 
 class Friendship(db.Model):
   id = db.Column(db.Integer, primary_key=True)
-  accepted = db.Column(db.Boolean, default=False)
+  accepted = db.Column(db.Boolean, server_default=expression.false(), nullable=False)
   requestingUserId = db.Column(db.Integer)
   acceptingUserId = db.Column(db.Integer)
+  created_on = db.Column(db.DateTime, server_default=db.func.now())
+  updated_on = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
 
   def __init__(self, accepted, requestingUserId, acceptingUserId):
     self.accepted = accepted
@@ -134,15 +162,16 @@ def register():
 def dashboard(userID):
   user = User.query.filter_by(id=userID).first()
   print(user)
-  
+  # addMessage(senderID=int(userID), receiverID=2, message="Hello Nicky")
+  chats = Message.query.filter(or_(Message.senderId == userID, Message.receiverId == userID)).all()
+  chats = messages_schema.dump(chats)
+  print(chats) 
   return render_template('dashboard.html', user=user)
 
 @app.route('/profile')
 @auth_required
 def profile(userID):
   user = User.query.filter_by(id=userID).first()
-  print(user)
-  
   return render_template('profile.html', user=user)
 
 
@@ -153,7 +182,6 @@ def friends(userID):
   friendships = Friendship.query.filter(Friendship.requestingUserId == userID, Friendship.accepted == True).all()
   friendIDs = list(map(lambda friend: friend.acceptingUserId, friendships))
   users = User.query.filter(User.id.in_(friendIDs)).all()
-
   # Get other users, not friends. I.e get users excluding friends and current user
   friendIDs.append(userID)
   others = User.query.filter(User.id.notin_(friendIDs)).all()
@@ -164,7 +192,7 @@ def friends(userID):
 @auth_required
 def find_friends(userID):
   users = User.query.filter(User.name.ilike('%' + request.args["search"] + '%')).all()
-  users = list(map(lambda user: user.to_dict(only=('id', 'name', 'email')), users))
+  users = users_schema.dump(users)
   return jsonify(users)
 
 # Remove a friend

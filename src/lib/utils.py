@@ -33,7 +33,6 @@ def auth_required(func):
       return redirect(url_for("login"))
     try:
       data = jwt.decode(session["token"], SECRET, algorithms=["HS256"])
-      print(data)
     except jwt.ExpiredSignatureError:
       return 'Signature expired. Please log in again.'
     except jwt.InvalidTokenError:

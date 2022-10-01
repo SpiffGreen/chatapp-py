@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="/static/css/style.css">
-</head>
+{% include "partials/head.html" %}
 <body>
+  {% include "partials/navauth.html" %}
   
-  <h2 class="text-3xl">Dashboard</h2>
-  <a href="/friends">Friends</a>
+  <header class="py-6 px-4 mx-auto max-w-7xl flex flex-wrap gap-2 justify-between items-center">
+    <form action="/find/users">
+      <input type="search" name="search" id="search" placeholder="Search friends..." class="rounded-3xl min-w-[300px] border border-slate-300 py-1.5 px-3">
+    </form>
+    <h2 class="text-xl text-center">Welcome <a href="/profile" class="text-blue-500">{{ user.name }}</a></h2>
+  </header>
 
-  <div class="my-4 text-2xl">Welcome {{ user.name }} </div>
+  <div class="py-2 px-4 max-w-7xl mx-auto flex">
+    <aside class="friends border border-slate-300 px-2 py-4 rounded-2xl min-h-[400px] min-w-[300px]">d</aside>
+
+  <main></main>
+  </div>
   
-  <a href="/logout">Logout</a>
 </body>
 </html>
