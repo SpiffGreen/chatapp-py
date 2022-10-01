@@ -49,6 +49,7 @@ class User(db.Model):
 
 class UserSchema(ma.Schema):
   class Meta:
+    model = User
     fields = ("id", "name", "email", "created_on", "updated_on")
 
 # Init schema
@@ -70,7 +71,11 @@ class Message(db.Model):
 
 class MessageSchema(ma.Schema):
   class Meta:
+    model = Message
+    include_fk = True
     fields = ("id", "message", "senderId", "receiverId", "created_on", "updated_on", "sender")
+    # id = ma.auto_field()
+    # message = ma.auto_field()
 
 # Init schema
 message_schema = MessageSchema()
@@ -161,12 +166,14 @@ def register():
 @auth_required
 def dashboard(userID):
   user = User.query.filter_by(id=userID).first()
-  print(user)
   # addMessage(senderID=int(userID), receiverID=2, message="Hello Nicky")
-  chats = Message.query.filter(or_(Message.senderId == userID, Message.receiverId == userID)).all()
+  # Fetch and group messages
+  chats = Message.query.filter(or_(Message.senderId == userID, Message.receiverId == userID)).order_by(Message.created_on.desc()).group_by(Message.receiverId).all()
   chats = messages_schema.dump(chats)
-  print(chats) 
-  return render_template('dashboard.html', user=user)
+  for message in chats:
+    message["sender"] = user_schema.dump(message["sender"])
+  # print(chats)
+  return render_template('dashboard.html', user=user, chats=chats)
 
 @app.route('/profile')
 @auth_required

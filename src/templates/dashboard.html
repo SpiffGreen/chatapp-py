@@ -12,7 +12,21 @@
   </header>
 
   <div class="py-2 px-4 max-w-7xl mx-auto flex">
-    <aside class="friends border border-slate-300 px-2 py-4 rounded-2xl min-h-[400px] min-w-[300px]">d</aside>
+    <aside class="friends border border-slate-300 px-2 py-4 rounded-2xl min-h-[400px] min-w-[300px]">
+     {% if chats %}
+      {% for chat in chats %}
+        <div>
+          <img src="./" alt="user">
+          <div class="detail">
+            <h3 class="text-xl">{{ chat.receiverId }}</h3>
+            <p class="text-gray-400">{{ chat.message }}</p>
+          </div>
+        </div>
+      {% endfor %}
+     {% else %}
+        <a href="/friends" class="btn text-white bg-blue-500 p-2 block w-full rounded-md">New Conversation</a>
+     {% endif %}
+    </aside> 
 
   <main></main>
   </div>
