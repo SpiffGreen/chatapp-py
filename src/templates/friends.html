@@ -7,6 +7,24 @@
   <title>Friends List</title>
 </head>
 <body>
-  Friends
+  <div class="text-3xl">Friends</div>
+
+  <h1>Friends list</h1>
+  {% if friends %}
+    {% for friend in friends %}
+      <a href="/user/{{ friend.id }}">{{ friend.name }}</a>
+    {% endfor %}
+  {% else %}
+    <div>Sorry you have no friends</div>
+  {% endif %}
+
+  <h1>Others</h1>
+  {% if others %}
+    {% for other_user in others %}
+      <a href="/user/{{ other_user.id }}">{{ other_user.name }}</a>
+    {% endfor %}
+  {% else %}
+    <div>You're a leader, everyone is your friend</div>
+  {% endif %}
 </body>
 </html>

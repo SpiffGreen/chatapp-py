@@ -8,16 +8,15 @@ A simple chat application written in python
 - Tailwind
 
 ### Features:
-- [] Friends
 - [] Chat box
-- [] Find friends
+- [x] Find friends
 - [] Message status
 - [] Add friend
-- [] Remove friend
+- [x] Remove friend
 - [] Delete Message
-- [] Profile
-- [] Friend list
-- [] Login/logout
+- [x] Profile
+- [x] Friend list
+- [x] Login/logout
 
 ### Python virtualenv
 create and activate a python virtual environment

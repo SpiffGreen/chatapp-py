@@ -18,6 +18,7 @@ marshmallow-sqlalchemy = "*"
 python-dotenv = "*"
 pymysql = "*"
 flask-bcrypt = "*"
+sqlalchemy-serializer = "*"
 
 [dev-packages]
 

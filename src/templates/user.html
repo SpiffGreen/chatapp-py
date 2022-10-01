@@ -8,5 +8,17 @@
 </head>
 <body>
   User
+
+  <div class="my-4 text-2xl">User: {{ user.name }} </div>
+
+  {% if friendship %}
+    {% if friendship.accepted %}
+      <button>Remove</button>
+    {% else %}
+      <button>Delete Friend Request</button>
+    {% endif %}
+  {% else %}
+    <button>Add friend</button>
+  {% endif %}
 </body>
 </html>

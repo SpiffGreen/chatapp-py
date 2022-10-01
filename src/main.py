@@ -1,5 +1,7 @@
-from flask import Flask, render_template, request, session, redirect, url_for, abort
+from copyreg import constructor
+from flask import Flask, render_template, request, session, redirect, url_for, abort, jsonify
 from lib.utils import valid_login, log_the_user_in, auth_required, stay_logged
+from sqlalchemy_serializer import SerializerMixin
 from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
@@ -26,7 +28,7 @@ db.init_app(app)
 bcrypt = Bcrypt(app)
 
 # User Class/Model
-class User(db.Model):
+class User(db.Model, SerializerMixin):
   id = db.Column(db.Integer, primary_key=True)
   name = db.Column(db.String(100))
   email = db.Column(db.String(100), unique=True)
@@ -47,6 +49,17 @@ class Message(db.Model):
     self.message = message
     self.userId = userId
     self.toUserId = toUserId
+
+class Friendship(db.Model):
+  id = db.Column(db.Integer, primary_key=True)
+  accepted = db.Column(db.Boolean, default=False)
+  requestingUserId = db.Column(db.Integer)
+  acceptingUserId = db.Column(db.Integer)
+
+  def __init__(self, accepted, requestingUserId, acceptingUserId):
+    self.accepted = accepted
+    self.requestingUserId = requestingUserId
+    self.acceptingUserId = acceptingUserId
 
 with app.app_context():
   db.create_all()
@@ -114,20 +127,63 @@ def register():
 def dashboard(userID):
   user = User.query.filter_by(id=userID).first()
   print(user)
+  
   return render_template('dashboard.html', user=user)
+
+@app.route('/profile')
+@auth_required
+def profile(userID):
+  user = User.query.filter_by(id=userID).first()
+  print(user)
+  
+  return render_template('profile.html', user=user)
 
 
 @app.route('/friends')
 @auth_required
-def friends():
-  friends = User.query.all()
-  return render_template('friends.html', friends=friends)
+def friends(userID):
+  # get accepted friendships user requested, then get all users with the matching ids
+  friendships = Friendship.query.filter(Friendship.requestingUserId == userID, Friendship.accepted == True).all()
+  friendIDs = list(map(lambda friend: friend.acceptingUserId, friendships))
+  users = User.query.filter(User.id.in_(friendIDs)).all()
+
+  # Get other users, not friends. I.e get users excluding friends and current user
+  friendIDs.append(userID)
+  others = User.query.filter(User.id.notin_(friendIDs)).all()
+
+  return render_template('friends.html', friends=users, others=others)
+
+@app.route('/api/find')
+@auth_required
+def find_friends(userID):
+  users = User.query.filter(User.name.ilike('%' + request.args["search"] + '%')).all()
+  users = list(map(lambda user: user.to_dict(only=('id', 'name', 'email')), users))
+  return jsonify(users)
+
+# Remove a friend
+@app.route('/api/remove-friend')
+@auth_required
+def remove_friend(userID):
+  user_id = None
+  try:
+    user_id = request.args["user_id"]
+    friendship = Friendship.qeury.filter(Friendship.acceptingUserId == user_id, Friendship.requestingUserId == userID, Friendship.accepted == True)
+    if friendship:
+      db.session.delete(friendship)
+      db.session.commit()
+    return jsonify({ "success": True })
+  except:
+    if not user_id:
+      return jsonify({ "success": False, "message": "Include valid user id" })
+
 
 
 @app.route('/user/<int:user_id>')
 @auth_required
-def user():
-  return render_template('friend.html')
+def user(user_id, userID):
+  user = User.query.get_or_404(user_id)
+  friendship = Friendship.query.filter(Friendship.requestingUserId == userID, Friendship.acceptingUserId == user_id).first()
+  return render_template('user.html', user=user, friendship=friendship)
 
 
 if __name__ == '__main__':
