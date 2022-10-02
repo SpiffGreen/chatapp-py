@@ -57,8 +57,9 @@ class Message(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   message = db.Column(db.String(250))
   senderId = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-  sender = db.relationship("User", backref="messages")
-  receiverId = db.Column(db.Integer)
+  sender = db.relationship("User", backref="messages_sent", foreign_keys=[senderId])
+  receiverId = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+  receiver = db.relationship("User", backref="messages_received", foreign_keys=[receiverId])
   created_on = db.Column(db.DateTime, server_default=db.func.now())
   updated_on = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
 
@@ -71,7 +72,7 @@ class MessageSchema(ma.Schema):
   class Meta:
     model = Message
     include_fk = True
-    fields = ("id", "message", "senderId", "receiverId", "created_on", "updated_on", "sender")
+    fields = ("id", "message", "senderId", "receiverId", "created_on", "updated_on", "sender", "receiver")
     # id = ma.auto_field()
     # message = ma.auto_field()
 
@@ -157,6 +158,7 @@ def register():
       db.session.commit()
       return redirect(url_for('login'))
     except:
+      logging.exception("An exception was thrown!")
       error = "Something went wrong, please check"
   return render_template('register.html', error=error)
 
@@ -170,7 +172,8 @@ def dashboard(userID):
   chats = messages_schema.dump(chats)
   for message in chats:
     message["sender"] = user_schema.dump(message["sender"])
-  # print(chats)
+    message["receiver"] = user_schema.dump(message["receiver"])
+  print(chats)
   return render_template('dashboard.html', user=user, chats=chats)
 
 @app.route('/profile')
