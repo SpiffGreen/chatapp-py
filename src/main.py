@@ -1,5 +1,3 @@
-from copyreg import constructor
-from email.mime import message
 from flask import Flask, render_template, request, session, redirect, url_for, abort, jsonify
 from lib.utils import valid_login, log_the_user_in, auth_required, stay_logged
 from flask_marshmallow import Marshmallow
