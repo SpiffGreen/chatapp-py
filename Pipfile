@@ -18,6 +18,8 @@ marshmallow-sqlalchemy = "*"
 python-dotenv = "*"
 pymysql = "*"
 flask-bcrypt = "*"
+flask-socketio = "*"
+eventlet = "*"
 
 [dev-packages]
 

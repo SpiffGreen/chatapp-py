@@ -3,10 +3,12 @@ from lib.utils import valid_login, log_the_user_in, auth_required, stay_logged
 from flask_marshmallow import Marshmallow
 from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 from flask_bcrypt import Bcrypt
 from sqlalchemy import or_
 from sqlalchemy.sql import func, expression
 from lib.config import getConfig
+from flask_socketio import SocketIO
 import logging
 import jwt
 
@@ -21,6 +23,7 @@ DATABASE_URI = getConfig().get("DATABASE_URI")
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = SECRET
 app.secret_key = SECRET
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 
@@ -28,6 +31,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 # Init
 db = SQLAlchemy()
 db.init_app(app)
+socketio = SocketIO(app)
 bcrypt = Bcrypt(app)
 ma = Marshmallow(app)
 
@@ -173,7 +177,7 @@ def dashboard(userID):
   for message in chats:
     message["sender"] = user_schema.dump(message["sender"])
     message["receiver"] = user_schema.dump(message["receiver"])
-  print(chats)
+  # print(chats)
   return render_template('dashboard.html', user=user, chats=chats)
 
 @app.route('/profile')
@@ -245,4 +249,6 @@ def user(user_id, userID):
 
 
 if __name__ == '__main__':
-  app.run(debug=True)
+  socketio.run(app, port=5000, debug=True)
+  # app.run(debug=True)
+
