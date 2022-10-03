@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  {% include "partials/head.html" %}
+<body>
+  {% include "partials/navauth.html" %}
+
+  <main class="max-w-[350px] mx-auto px-4 py-4">
+    <h1 class="text-center py-3">Friend Requests</h1>
+
+    {% if f_requests %}
+      {% for f_req in f_requests %}
+        <!-- <div>{{ f_req.sender.name }}</div> -->
+        <div class="flex gap-2 hover:bg-slate-100 px-2 py-4">
+          <div class="image">
+            <!-- <img src="./" alt="user"> -->
+            <div
+              class="bg-slate-300 rounded-full p-2 w-[35px] h-[35px] flex justify-center items-center"
+            >
+              <i class="fa-solid fa-user"></i>
+            </div>
+          </div>
+          <div class="detail">
+            <div class="text">{{ f_req.sender.name }}</div>
+            <button class="accept-btn text-blue-500" data-friendshipID="{{ f_req.id }}">Accept</button> | <button data-friendshipID="{{ f_req.id }}" class="decline-btn text-blue-500">Decline</button>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-slate-500 text-center">No friend request</p>
+    {% endif %}
+  </main>
+  <script>
+    window.addEventListener("DOMContentLoaded", init);
+
+    function init() {
+      const acceptBtns = document.querySelectorAll(".accept-btn");
+      const declineBtns = document.querySelectorAll(".decline-btn");
+
+      acceptBtns?.forEach(btn => btn.addEventListener("click", addFriend));
+      declineBtns?.forEach(btn => btn.addEventListener("click", removeFriend));
+    }
+
+    async function addFriend(e) {
+      try {
+        const res = await fetch("/api/add-friend?friendship_id=" + e.target.dataset.friendshipid, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const data = await res.json();
+        if (data.success == true) alert("Friend request alert");
+        else alert("Failed to send friend request");
+      } catch (err) {
+        console.log(err);
+        alert("Failed to send friend request");
+      }
+    }
+
+    async function removeFriend(e) {
+      try {
+        const res = await fetch("/api/remove-friend?friendship_id=" + e.target.dataset.friendshipid, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // body: JSON.stringify({ user_id }),
+        });
+        const data = await res.json();
+        if (data.success == true) alert("Successfully deleted friend");
+        else alert("Failed to delete friend");
+      } catch (err) {
+        console.log(err);
+        alert("Failed to delete friend");
+      }
+    }
+  </script>
+</body>
+</html>

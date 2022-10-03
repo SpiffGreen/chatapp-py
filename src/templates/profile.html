@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="/static/css/style.css">
-</head>
+  {% include "partials/head.html" %}
 <body>
+  {% include "partials/navauth.html" %}
   
-  <h2 class="text-3xl">Profile</h2>
+  <main class="max-w-[350px] mx-auto text-center">
+    <h2 class="text-3xl my-4">Profile</h2>
 
-  <div class="my-4 text-2xl">Welcome {{ user.name }} </div>
-  
-  <a href="/logout">Logout</a>
+    <div class="my-4 text-2xl">
+      <p class="my-3 text-slate-500 text-base">{{ user.name }} </p>
+      <p class="my-3 text-slate-500 text-base">{{ user.email }}</p>
+    </div>
+
+    
+    <a href="/logout" class="text-blue-500">Logout</a>
+  </main>
 </body>
 </html>

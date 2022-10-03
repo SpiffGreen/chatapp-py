@@ -1,3 +1,5 @@
+from time import sleep
+from traceback import print_list
 from flask import Flask, render_template, request, session, redirect, url_for, abort, jsonify
 from lib.utils import valid_login, log_the_user_in, auth_required, stay_logged
 from flask_marshmallow import Marshmallow
@@ -5,10 +7,10 @@ from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_bcrypt import Bcrypt
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from sqlalchemy.sql import func, expression
 from lib.config import getConfig
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, send, emit
 import logging
 import jwt
 
@@ -41,8 +43,9 @@ class User(db.Model):
   name = db.Column(db.String(100))
   email = db.Column(db.String(100), unique=True)
   password = db.Column(db.String(250))
+  session_id = db.Column(db.String(200))
   created_on = db.Column(db.DateTime, server_default=db.func.now())
-  updated_on = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
+  updated_on = db.Column(db.DateTime, server_default=db.func.now(), onupdate=datetime.utcnow)
 
   def __init__(self, name, email, password):
     self.name = name
@@ -65,7 +68,7 @@ class Message(db.Model):
   receiverId = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
   receiver = db.relationship("User", backref="messages_received", foreign_keys=[receiverId])
   created_on = db.Column(db.DateTime, server_default=db.func.now())
-  updated_on = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
+  updated_on = db.Column(db.DateTime, server_default=db.func.now(), onupdate=datetime.utcnow)
 
   def __init__(self, message, senderId, receiverId):
     self.message = message
@@ -77,8 +80,6 @@ class MessageSchema(ma.Schema):
     model = Message
     include_fk = True
     fields = ("id", "message", "senderId", "receiverId", "created_on", "updated_on", "sender", "receiver")
-    # id = ma.auto_field()
-    # message = ma.auto_field()
 
 # Init schema
 message_schema = MessageSchema()
@@ -87,20 +88,48 @@ messages_schema = MessageSchema(many=True)
 class Friendship(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   accepted = db.Column(db.Boolean, server_default=expression.false(), nullable=False)
-  requestingUserId = db.Column(db.Integer)
-  acceptingUserId = db.Column(db.Integer)
+  requestingUserId = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+  sender = db.relationship("User", backref="friendship_sent", foreign_keys=[requestingUserId])
+  acceptingUserId = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+  receiver = db.relationship("User", backref="friendship_received", foreign_keys=[acceptingUserId])
   created_on = db.Column(db.DateTime, server_default=db.func.now())
-  updated_on = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
+  updated_on = db.Column(db.DateTime, server_default=db.func.now(), onupdate=datetime.utcnow)
 
   def __init__(self, accepted, requestingUserId, acceptingUserId):
     self.accepted = accepted
     self.requestingUserId = requestingUserId
     self.acceptingUserId = acceptingUserId
 
+class FriendshipSchema(ma.Schema):
+  class Meta:
+    model = Friendship
+    include_fk = True
+    fields = ("id", "accepted", "requestingUserId", "acceptingUserId", "created_on", "updated_on", "sender", "receiver")
+
+# Init schema
+friendship_schema = FriendshipSchema()
+friendships_schema = FriendshipSchema(many=True)
+
 with app.app_context():
   db.create_all()
 
+# Socketio event handlers
+@socketio.on('connect')
+@auth_required
+def socket_connect(userID):
+  user = User.query.filter_by(id=userID).first()
+  user.session_id = request.sid
+  db.session.commit()
+  emit('welcome', {'data': 'Connected'})
 
+@socketio.on('disconnect')
+@auth_required
+def socket_disconnect(userID):
+  user = User.query.filter_by(id=userID).first()
+  user.session_id = ""
+  db.session.commit()
+
+# Route definitions
 @app.route('/')
 def index():
   return render_template('index.html')
@@ -187,12 +216,31 @@ def profile(userID):
   return render_template('profile.html', user=user)
 
 
+@app.route('/friend-requests')
+@auth_required
+def friend_requests(userID):
+  f_requests = Friendship.query.filter(and_(Friendship.acceptingUserId == userID, Friendship.accepted == False)).all()
+  f_requests = friendships_schema.dump(f_requests)
+  # print(f_requests)
+  for f_req in f_requests:
+    f_req["sender"] = user_schema.dump(f_req["sender"])
+    f_req["receiver"] = user_schema.dump(f_req["receiver"])
+  
+  return render_template("friend-requests.html", f_requests=f_requests)
+
 @app.route('/friends')
 @auth_required
 def friends(userID):
   # get accepted friendships user requested, then get all users with the matching ids
-  friendships = Friendship.query.filter(Friendship.requestingUserId == userID, Friendship.accepted == True).all()
-  friendIDs = list(map(lambda friend: friend.acceptingUserId, friendships))
+  friendships = Friendship.query.filter(or_(Friendship.requestingUserId == userID, Friendship.acceptingUserId == userID), Friendship.accepted == True).all()
+  # friendIDs = list(map(lambda friend: friend.acceptingUserId, friendships))
+  friendIDs = []
+  for friend in friendships:
+    if friend.requestingUserId == userID:
+      friendIDs.append(friend.acceptingUserId)
+    else:
+      friendIDs.append(friend.requestingUserId)
+
   users = User.query.filter(User.id.in_(friendIDs)).all()
   # Get other users, not friends. I.e get users excluding friends and current user
   friendIDs.append(userID)
@@ -208,33 +256,46 @@ def find_friends(userID):
   return jsonify(users)
 
 # Remove a friend
-@app.route('/api/remove-friend')
+@app.route('/api/remove-friend', methods=["POST"])
 @auth_required
 def remove_friend(userID):
   user_id = None
   try:
-    user_id = request.args["user_id"]
-    friendship = Friendship.qeury.filter(Friendship.acceptingUserId == user_id, Friendship.requestingUserId == userID, Friendship.accepted == True)
-    if friendship:
-      db.session.delete(friendship)
-      db.session.commit()
+    friendship_id = request.args.get("friendship_id")
+    if friendship_id:
+      friendship = Friendship.query.filter(Friendship.id == friendship_id).first()
+    else:
+      user_id = request.args.get("user_id")
+      friendship = Friendship.query.filter(or_(and_(Friendship.acceptingUserId == user_id, Friendship.requestingUserId == userID), and_(Friendship.acceptingUserId == userID, Friendship.requestingUserId == user_id))).first()
+    db.session.delete(friendship)
+    db.session.commit()
     return jsonify({ "success": True })
   except:
-    if not user_id:
+    logging.exception("An exception was thrown!")
+    if not friendship_id:
       return jsonify({ "success": False, "message": "Include valid user id" })
 
 # Remove a friend
-@app.route('/api/add-friend')
+@app.route('/api/add-friend', methods=["POST"])
 @auth_required
 def add_friend(userID):
   user_id = None
   try:
-    user_id = int(request.args["user_id"])
-    newFriendship = Friendship(accepted=False, requestingUserId=int(userID), acceptingUserId=user_id)
-    db.session.add(newFriendship)
+    friendship_id = request.args.get("friendship_id")
+    if friendship_id:
+      friendship_id = int(friendship_id)
+      friendship = Friendship.query.filter(Friendship.id == friendship_id).first()
+      friendship.accepted = True
+    else:
+      user_id = int(request.args.get("user_id"))
+      friendship = Friendship(accepted=False, requestingUserId=int(userID), acceptingUserId=user_id)
+      db.session.add(friendship)
+      print("Created")
+
     db.session.commit()
     return jsonify({ "success": True })
   except:
+    logging.exception("An exception was thrown!")
     if not user_id:
       return jsonify({ "success": False, "message": "Include valid user id" })
 
@@ -244,8 +305,8 @@ def add_friend(userID):
 @auth_required
 def user(user_id, userID):
   user = User.query.get_or_404(user_id)
-  friendship = Friendship.query.filter(Friendship.requestingUserId == userID, Friendship.acceptingUserId == user_id).first()
-  return render_template('user.html', user=user, friendship=friendship)
+  friendship = Friendship.query.filter(or_(and_(Friendship.requestingUserId == userID, Friendship.acceptingUserId == user_id), and_(Friendship.acceptingUserId == userID, Friendship.requestingUserId == user_id))).first()
+  return render_template('user.html', user=user, friendship=friendship, userID=userID)
 
 
 if __name__ == '__main__':

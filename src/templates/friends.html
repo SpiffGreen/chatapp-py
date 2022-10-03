@@ -1,30 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Friends List</title>
-</head>
-<body>
-  <div class="text-3xl">Friends</div>
+  {% include "partials/head.html" %}
+  <body>
+    {% include "partials/navauth.html" %}
 
-  <h1>Friends list</h1>
-  {% if friends %}
-    {% for friend in friends %}
+    <main class="max-w-7xl mx-auto px-4 py-4">
+      <div class="my-2 text-3xl">Friends</div>
+
+      {% if friends %} {% for friend in friends %}
       <a href="/user/{{ friend.id }}">{{ friend.name }}</a>
-    {% endfor %}
-  {% else %}
-    <div>Sorry you have no friends</div>
-  {% endif %}
+      {% endfor %} {% else %}
+      <div class="text-slate-500 my-3">No friends yet :(</div>
+      {% endif %}
 
-  <h1>Others</h1>
-  {% if others %}
-    {% for other_user in others %}
-      <a href="/user/{{ other_user.id }}">{{ other_user.name }}</a>
-    {% endfor %}
-  {% else %}
-    <div>You're a leader, everyone is your friend</div>
-  {% endif %}
-</body>
+      <h1 class="my-2 text-3xl">Others</h1>
+      {% if others %} {% for other_user in others %}
+        <a href="/user/{{ other_user.id }}">
+          <div class="flex gap-2 hover:bg-slate-100 px-2 py-4 cursor-pointer">
+            <div class="image">
+              <!-- <img src="./" alt="user"> -->
+              <div
+                class="bg-slate-300 rounded-full p-2 w-[35px] h-[35px] flex justify-center items-center"
+              >
+                <i class="fa-solid fa-user"></i>
+              </div>
+            </div>
+            <div class="detail">
+              <div class="text-sm">{{ other_user.name }}</div>
+            </div>
+          </div>
+        </a>
+      {% endfor %} {% else %}
+        <div>You're a leader, everyone is your friend</div>
+      {% endif %}
+    </main>
+  </body>
 </html>
