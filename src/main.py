@@ -1,4 +1,3 @@
-from time import sleep
 from traceback import print_list
 from flask import Flask, render_template, request, session, redirect, url_for, abort, jsonify
 from lib.utils import valid_login, log_the_user_in, auth_required, stay_logged
@@ -129,6 +128,15 @@ def socket_disconnect(userID):
   user.session_id = ""
   db.session.commit()
 
+@socketio.on('send_message')
+def socket_send_message(data):
+  print(data)
+  receiver = User.query.get(data["chatID"])
+  sender = User.query.filter(User.session_id == request.sid).first()
+  print("Receiver: ", receiver)
+  if receiver.session_id:
+    emit("receive_message", {"message": data["message"], "sender": user_schema.dump(sender)}, to=receiver.session_id)
+
 # Route definitions
 @app.route('/')
 def index():
@@ -198,6 +206,7 @@ def register():
 @app.route('/dashboard')
 @auth_required
 def dashboard(userID):
+  chatid = request.args.get("chatid")
   user = User.query.filter_by(id=userID).first()
   # addMessage(senderID=int(userID), receiverID=2, message="Hello Nicky")
   # Fetch and group messages
@@ -207,7 +216,7 @@ def dashboard(userID):
     message["sender"] = user_schema.dump(message["sender"])
     message["receiver"] = user_schema.dump(message["receiver"])
   # print(chats)
-  return render_template('dashboard.html', user=user, chats=chats)
+  return render_template('dashboard.html', user=user, chats=chats, chatid=chatid)
 
 @app.route('/profile')
 @auth_required
@@ -287,10 +296,9 @@ def add_friend(userID):
       friendship = Friendship.query.filter(Friendship.id == friendship_id).first()
       friendship.accepted = True
     else:
-      user_id = int(request.args.get("user_id"))
-      friendship = Friendship(accepted=False, requestingUserId=int(userID), acceptingUserId=user_id)
+      user_id = request.args.get("user_id")
+      friendship = Friendship(accepted=False, requestingUserId=userID, acceptingUserId=user_id)
       db.session.add(friendship)
-      print("Created")
 
     db.session.commit()
     return jsonify({ "success": True })

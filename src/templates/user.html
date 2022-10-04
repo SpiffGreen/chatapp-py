@@ -34,6 +34,7 @@
     <script>
       window.addEventListener("DOMContentLoaded", init);
       const user_id = "{{ user.id }}";
+      const friendship_id = "{{ friendship.id }}"
 
       function init() {
         const removeBtn = document.querySelector(".remove-btn");
@@ -42,7 +43,7 @@
         const acceptBtn = document.querySelector(".accept-btn");
 
         addBtn?.addEventListener("click", addFriend);
-        acceptBtn?.addEventListener("click", addFriend);
+        acceptBtn?.addEventListener("click", acceptFriend);
         removeBtn?.addEventListener("click", removeFriend);
         deleteBtn?.addEventListener("click", removeFriend);
       }
@@ -50,6 +51,24 @@
       async function addFriend(e) {
         try {
           const res = await fetch("/api/add-friend?user_id=" + user_id, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ user_id }),
+          });
+          const data = await res.json();
+          if (data.success == true) alert("Friend request sent");
+          else alert("Failed to send friend request");
+        } catch (err) {
+          console.log(err);
+          alert("Failed to send friend request");
+        }
+      }
+
+      async function acceptFriend(e) {
+        try {
+          const res = await fetch("/api/add-friend?friendship_id=" + friendship_id, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

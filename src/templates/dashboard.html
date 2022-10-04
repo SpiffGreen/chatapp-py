@@ -42,32 +42,68 @@
           </div>
         </div>
         {% endfor %} {% else %}
-        <div class="px-2"><a
-          href="/friends"
-          class="btn text-white text-center bg-blue-500 p-2 block w-full rounded-md"
-          >New Conversation</a
-        ></div>
+        <div class="px-2">
+          <a
+            href="/friends"
+            class="btn text-white text-center bg-blue-500 p-2 block w-full rounded-md"
+            >New Conversation</a
+          >
+        </div>
         {% endif %}
       </aside>
 
-      <main class="border border-slate-300 rounded-2xl px-2 grow min-h-[450px] flex flex-col">
+      <main
+        class="border border-slate-300 rounded-2xl px-2 grow min-h-[450px] flex flex-col"
+      >
         <section class="messages grow"></section>
         <section class="message-box">
           <form action="#" class="flex gap-2 py-2 justify-center">
-            <input type="text" name="message" id="message" class="rounded-2xl border border-slate-300 p-2 grow max-w-2xl" placeholder="Type a message">
-            <button class="bg-blue-500 text-white rounded-full w-[38px] h-[38px] justify-center items-center flex" type="submit"><i class="fa-solid fa-paper-plane -translate-x-[2px]"></i></i></button>
+            <input
+              type="text"
+              name="message"
+              id="message"
+              class="rounded-2xl border border-slate-300 p-2 grow max-w-2xl"
+              placeholder="Type a message"
+            />
+            <button
+              class="bg-blue-500 text-white rounded-full w-[38px] h-[38px] justify-center items-center flex"
+              type="submit"
+            >
+              <i class="fa-solid fa-paper-plane -translate-x-[2px]"></i>
+            </button>
           </form>
         </section>
       </main>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+      integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+      crossorigin="anonymous"
+    ></script>
     <script type="text/javascript" charset="utf-8">
-        var socket = io();
-        socket.on('connect', function() {
-            console.log("Connected");
-            // socket.emit('my event', {data: 'I\'m connected!'});
-        });
+      var socket = io();
+      socket.on("connect", function () {
+        console.log("Connected");
+      });
+
+      let otherUserId = "{{ chatid }}";
+
+      const messageBox = document.querySelector(".message-box form");
+      messageBox.addEventListener("submit", sendMessage);
+
+      function sendMessage(e) {
+        // Do logic here
+        e.preventDefault();
+        const val = e.target.message.value.trim();
+        e.target.message.value = "";
+        if(!val.length) return;
+        socket.emit("send_message", { message: val, chatID: otherUserId });
+      }
+
+      socket.on("receive_message", function (data) {
+        console.log(data);
+      });
     </script>
   </body>
 </html>
