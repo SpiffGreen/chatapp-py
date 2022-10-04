@@ -1,5 +1,5 @@
 from traceback import print_list
-from flask import Flask, render_template, request, session, redirect, url_for, abort, jsonify
+from flask import Flask, render_template, request, session, redirect, url_for, abort, jsonify, escape
 from lib.utils import valid_login, log_the_user_in, auth_required, stay_logged
 from flask_marshmallow import Marshmallow
 from datetime import datetime, timedelta
@@ -9,7 +9,7 @@ from flask_bcrypt import Bcrypt
 from sqlalchemy import or_, and_
 from sqlalchemy.sql import func, expression
 from lib.config import getConfig
-from flask_socketio import SocketIO, send, emit
+from flask_socketio import SocketIO, emit
 import logging
 import jwt
 
@@ -119,7 +119,6 @@ def socket_connect(userID):
   user = User.query.filter_by(id=userID).first()
   user.session_id = request.sid
   db.session.commit()
-  emit('welcome', {'data': 'Connected'})
 
 @socketio.on('disconnect')
 @auth_required
@@ -130,12 +129,11 @@ def socket_disconnect(userID):
 
 @socketio.on('send_message')
 def socket_send_message(data):
-  print(data)
+  message = escape(data["message"])
   receiver = User.query.get(data["chatID"])
   sender = User.query.filter(User.session_id == request.sid).first()
-  print("Receiver: ", receiver)
   if receiver.session_id:
-    emit("receive_message", {"message": data["message"], "sender": user_schema.dump(sender)}, to=receiver.session_id)
+    emit("receive_message", {"message": message, "sender": user_schema.dump(sender)}, to=receiver.session_id)
 
 # Route definitions
 @app.route('/')
