@@ -25,8 +25,12 @@
       <aside
         class="friends border border-slate-300 py-4 rounded-2xl min-w-[300px] h-fit"
       >
-        {% if chats %} {% for chat in chats %}
-        <div class="flex gap-2 hover:bg-slate-100 px-2 py-2 cursor-pointer">
+        {% if chats %} {% for chat in chats %} {% if chat.receiverId != user.id
+        %}
+        <a
+          href="/dashboard?chatid={{chat.receiverId}}"
+          class="flex gap-2 hover:bg-slate-100 px-2 py-2 cursor-pointer"
+        >
           <div class="image">
             <!-- <img src="./" alt="user"> -->
             <div
@@ -40,8 +44,8 @@
             <!-- <span>{{ chat.created_on }}</span> -->
             <p class="text-gray-400 font-thin text-xs">{{ chat.message }}</p>
           </div>
-        </div>
-        {% endfor %} {% else %}
+        </a>
+        {% endif %} {% endfor %} {% else %}
         <div class="px-2">
           <a
             href="/friends"
@@ -55,7 +59,9 @@
       <main
         class="border border-slate-300 rounded-2xl px-2 grow min-h-[450px] flex flex-col"
       >
-        <section class="messages grow max-h-[500px] py-1 overflow-y-auto"></section>
+        <section
+          class="messages grow max-h-[500px] py-1 overflow-y-auto"
+        ></section>
         <section class="message-box">
           <form action="#" class="flex gap-2 py-2 justify-center">
             <input
@@ -86,7 +92,7 @@
       socket.on("connect", function () {
         console.log("Connected");
       });
-      
+
       let otherUserId = "{{ chatid }}";
       const params = new URLSearchParams(location.search);
       const messagesBox = document.querySelector(".messages");
@@ -96,12 +102,56 @@
       messageBox.addEventListener("submit", sendMessage);
 
       async function initChat(chatId) {
-        if(chatId) {
+        if (chatId) {
           // fetch messages and update ui
           try {
             const res = await fetch("/api/chats?user_id=" + otherUserId);
-            const data = await res.json();
-            console.log(res);
+            const messages = await res.json();
+            console.log(messages);
+
+            messages.forEach((message) => {
+              if (message.receiverId == otherUserId) {
+                // message user sent
+                const messageView2 = `
+          <div class="flex justify-end gap-2">
+            <div class="detail">
+              <div class="message left rounded-b-md rounded-tl-md bg-slate-300 p-2">
+                <p class="font-black">{{ user.name }}</p>
+                ${escapeHtml(message.message)}
+              </div>
+            </div>
+            <div class="image">
+              <div
+                class="bg-slate-300 rounded-full p-2 w-[35px] h-[35px] flex justify-center items-center"
+              >
+                <i class="fa-solid fa-user"></i>
+              </div>
+            </div>
+          </div>
+          `;
+        messagesBox.innerHTML += messageView2;
+              } else {
+                // message user received
+                const messageView2 = `
+          <div class="flex gap-2">
+            <div class="image">
+              <div
+                class="bg-slate-300 rounded-full p-2 w-[35px] h-[35px] flex justify-center items-center"
+              >
+                <i class="fa-solid fa-user"></i>
+              </div>
+            </div>
+            <div class="detail">
+              <div class="message left rounded-b-md rounded-tr-md bg-slate-300 p-2">
+                <p class="font-black">${message.sender.name}</p>
+                ${message.message}
+              </div>
+            </div>
+          </div>
+          `;
+                messagesBox.innerHTML += messageView2;
+              }
+            });
           } catch (error) {
             console.error(error);
           }

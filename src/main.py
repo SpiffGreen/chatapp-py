@@ -212,12 +212,12 @@ def dashboard(userID):
   user = User.query.filter_by(id=userID).first()
   # addMessage(senderID=int(userID), receiverID=2, message="Hello Nicky")
   # Fetch and group messages
-  chats = Message.query.filter(or_(Message.senderId == userID, Message.receiverId == userID)).order_by(Message.created_on.desc()).group_by(Message.receiverId).all()
+  chats = Message.query.filter(or_(Message.senderId == userID, Message.receiverId == userID)).order_by(Message.created_on.desc()).group_by(Message.senderId).all()
   chats = messages_schema.dump(chats)
   for message in chats:
     message["sender"] = user_schema.dump(message["sender"])
     message["receiver"] = user_schema.dump(message["receiver"])
-  # print(chats)
+  # return jsonify(chats)
   return render_template('dashboard.html', user=user, chats=chats, chatid=chatid)
 
 @app.route('/profile')
@@ -320,8 +320,6 @@ def get_chat(userID):
     for c in chats:
       c["sender"] = user_schema.dump(c["sender"])
       c["receiver"] = user_schema.dump(c["receiver"])
-
-    print(chats)
     return jsonify(chats)
   except:
     logging.exception("An exception was thrown!")
