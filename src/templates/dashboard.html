@@ -86,13 +86,27 @@
       socket.on("connect", function () {
         console.log("Connected");
       });
-
+      
       let otherUserId = "{{ chatid }}";
       const params = new URLSearchParams(location.search);
       const messagesBox = document.querySelector(".messages");
+      initChat(params.get("chatid"));
 
       const messageBox = document.querySelector(".message-box form");
       messageBox.addEventListener("submit", sendMessage);
+
+      async function initChat(chatId) {
+        if(chatId) {
+          // fetch messages and update ui
+          try {
+            const res = await fetch("/api/chats?user_id=" + otherUserId);
+            const data = await res.json();
+            console.log(res);
+          } catch (error) {
+            console.error(error);
+          }
+        }
+      }
 
       function escapeHtml(unsafe) {
         return unsafe

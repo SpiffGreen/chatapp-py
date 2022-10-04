@@ -1,5 +1,5 @@
 from traceback import print_list
-from flask import Flask, render_template, request, session, redirect, url_for, abort, jsonify, escape
+from flask import Flask, render_template, request, session, redirect, url_for, abort, jsonify
 from lib.utils import valid_login, log_the_user_in, auth_required, stay_logged
 from flask_marshmallow import Marshmallow
 from datetime import datetime, timedelta
@@ -11,6 +11,7 @@ from sqlalchemy.sql import func, expression
 from lib.config import getConfig
 from flask_socketio import SocketIO, emit
 import logging
+import html
 import jwt
 
 def addMessage(senderID, receiverID, message):
@@ -129,11 +130,14 @@ def socket_disconnect(userID):
 
 @socketio.on('send_message')
 def socket_send_message(data):
-  message = escape(data["message"])
+  message = html.escape(data["message"])
   receiver = User.query.get(data["chatID"])
   sender = User.query.filter(User.session_id == request.sid).first()
   if receiver.session_id:
     emit("receive_message", {"message": message, "sender": user_schema.dump(sender)}, to=receiver.session_id)
+    message = Message(message=message, senderId=sender.id, receiverId=receiver.id)
+    db.session.add(message)
+    db.session.commit()
 
 # Route definitions
 @app.route('/')
@@ -282,7 +286,7 @@ def remove_friend(userID):
     if not friendship_id:
       return jsonify({ "success": False, "message": "Include valid user id" })
 
-# Remove a friend
+# Add a friend
 @app.route('/api/add-friend', methods=["POST"])
 @auth_required
 def add_friend(userID):
@@ -305,7 +309,23 @@ def add_friend(userID):
     if not user_id:
       return jsonify({ "success": False, "message": "Include valid user id" })
 
+# Get a chat
+@app.route('/api/chats', methods=["GET"])
+@auth_required
+def get_chat(userID):
+  try:
+    user_id = request.args.get("user_id")
+    chats = Message.query.filter(or_(and_(Message.receiverId == userID, Message.senderId == user_id), and_(Message.receiverId == user_id, Message.senderId == userID))).all()
+    chats = messages_schema.dump(chats)
+    for c in chats:
+      c["sender"] = user_schema.dump(c["sender"])
+      c["receiver"] = user_schema.dump(c["receiver"])
 
+    print(chats)
+    return jsonify(chats)
+  except:
+    logging.exception("An exception was thrown!")
+    return jsonify({ "messages": [] })
 
 @app.route('/user/<int:user_id>')
 @auth_required
