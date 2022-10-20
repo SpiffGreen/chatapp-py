@@ -6,12 +6,13 @@ A simple chat application written in python
 - Python
 - Socketio
 - Tailwind
+- MySQL
 
 ### Features:
-- [] Chat box
+- [x] Chat box
 - [x] Find friends
 - [] Message status
-- [] Add friend
+- [x] Add friend
 - [x] Remove friend
 - [] Delete Message
 - [x] Profile
